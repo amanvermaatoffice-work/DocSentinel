@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::selection {
+    background: rgba(59, 130, 246, 0.18);
+    color: inherit;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .dark ::-webkit-scrollbar-thumb { background: #334155; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card-hover:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+  }
+  .card-interactive {
+    @apply cursor-pointer;
+  }
+  .card-interactive:hover {
+    @apply border-blue-200 dark:border-blue-800;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+  }
+  .card-interactive:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-700 active:bg-blue-900 text-white text-sm font-semibold rounded-lg transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium rounded-lg transition-all duration-150 active:scale-95;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 active:bg-red-800 text-white text-sm font-semibold rounded-lg transition-all duration-150 active:scale-95;
+  }
+  .btn-icon {
+    @apply p-2 rounded-lg transition-all duration-150 active:scale-95;
+  }
+
+  /* ── Page icon headers ── */
+  .page-icon-blue   { @apply w-9 h-9 rounded-lg bg-blue-100   dark:bg-blue-900/40   text-blue-700   dark:text-blue-400   flex items-center justify-center shrink-0; }
+  .page-icon-green  { @apply w-9 h-9 rounded-lg bg-green-100  dark:bg-green-900/40  text-green-700  dark:text-green-400  flex items-center justify-center shrink-0; }
+  .page-icon-amber  { @apply w-9 h-9 rounded-lg bg-amber-100  dark:bg-amber-900/40  text-amber-700  dark:text-amber-400  flex items-center justify-center shrink-0; }
+  .page-icon-red    { @apply w-9 h-9 rounded-lg bg-red-100    dark:bg-red-900/40    text-red-700    dark:text-red-400    flex items-center justify-center shrink-0; }
+  .page-icon-indigo { @apply w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0; }
+  .page-icon-teal   { @apply w-9 h-9 rounded-lg bg-teal-100   dark:bg-teal-900/40   text-teal-700   dark:text-teal-400   flex items-center justify-center shrink-0; }
+
+  /* ── Inputs ── */
+  .input {
+    @apply w-full px-3 py-2 text-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-150;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .input:hover:not(:focus) {
+    @apply border-slate-400 dark:border-slate-600;
+  }
+
+  /* ── Tables ── */
+  .gov-table {
+    @apply w-full text-sm;
+  }
+  .gov-table thead tr {
+    @apply bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700;
+  }
+  .gov-table th {
+    @apply px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+  .gov-table td {
+    @apply px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300;
+  }
+  .gov-table tbody tr {
+    @apply border-t border-slate-100 dark:border-slate-800/80 transition-colors duration-100;
+  }
+  .gov-table tbody tr:nth-child(even) {
+    @apply bg-slate-50/60 dark:bg-slate-800/20;
+  }
+  .gov-table tbody tr:hover {
+    @apply bg-blue-50/60 dark:bg-blue-900/10;
+  }
+
+  /* ── Misc ── */
+  .text-page  { @apply text-slate-900 dark:text-slate-100; }
+  .text-muted { @apply text-slate-500 dark:text-slate-400; }
+  .text-label { @apply text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500; }
+  .divider    { @apply border-slate-200 dark:border-slate-800; }
+
+  /* Staggered animation delays */
+  .delay-75  { animation-delay: 75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-225 { animation-delay: 225ms; }
+  .delay-300 { animation-delay: 300ms; }
+}

@@ -1,0 +1,216 @@
+"""Demo data and scenario definitions for SIH prototype."""
+
+DEMO_OFFICER = {"officer_id": "DEMO-SSB-001", "password": "demo123"}
+
+DEMO_ENCOUNTERS = [
+    {
+        "encounter_id": "ENC-2026-0001",
+        "timestamp": "2026-09-03T10:12:00",
+        "checkpoint": "Checkpoint A",
+        "identity_reference": "ID-REF-001",
+        "document_reference": "DOC-REF-001",
+        "face_reference": "FACE-REF-001",
+        "person_reference": "PERSON-REF-001",
+        "document_type": "passport",
+        "risk_score": 21.0,
+        "risk_level": "LOW",
+        "status": "cleared",
+    },
+    {
+        "encounter_id": "ENC-2026-0002",
+        "timestamp": "2026-09-03T14:48:00",
+        "checkpoint": "Checkpoint B",
+        "identity_reference": "ID-REF-001",
+        "document_reference": "DOC-REF-001",
+        "face_reference": "FACE-REF-001",
+        "person_reference": "PERSON-REF-001",
+        "document_type": "passport",
+        "risk_score": 18.0,
+        "risk_level": "LOW",
+        "status": "cleared",
+    },
+    {
+        "encounter_id": "ENC-2026-0017",
+        "timestamp": "2026-09-03T17:03:00",
+        "checkpoint": "Checkpoint C",
+        "identity_reference": "ID-REF-017",
+        "document_reference": "DOC-REF-017",
+        "face_reference": "FACE-REF-001",
+        "person_reference": "PERSON-REF-001",
+        "document_type": "passport",
+        "risk_score": 89.0,
+        "risk_level": "CRITICAL",
+        "status": "flagged",
+    },
+    {
+        "encounter_id": "ENC-2026-0024",
+        "timestamp": "2026-09-03T11:30:00",
+        "checkpoint": "Checkpoint A",
+        "identity_reference": "ID-REF-024",
+        "document_reference": "DOC-REF-024",
+        "face_reference": "FACE-REF-024",
+        "person_reference": "PERSON-REF-024",
+        "document_type": "passport",
+        "risk_score": 78.0,
+        "risk_level": "HIGH",
+        "status": "pending_review",
+    },
+    {
+        "encounter_id": "ENC-2026-0031",
+        "timestamp": "2026-09-03T09:05:00",
+        "checkpoint": "Checkpoint B",
+        "identity_reference": "ID-REF-031",
+        "document_reference": "DOC-REF-031",
+        "face_reference": "FACE-REF-031",
+        "person_reference": "PERSON-REF-031",
+        "document_type": "pan",
+        "risk_score": 45.0,
+        "risk_level": "MEDIUM",
+        "status": "processed",
+    },
+]
+
+FRAUD_PATTERNS = [
+    {
+        "pattern_id": "FP-0042",
+        "observed_in": ["ENC-2026-0017", "ENC-2026-0024", "ENC-2026-0048"],
+        "common_indicators": [
+            "Similar template anomaly",
+            "Similar photo manipulation pattern",
+            "Similar document-region modification",
+        ],
+        "description": "Similar fraud pattern detected across multiple encounters. Requires officer review.",
+    },
+    {
+        "pattern_id": "FP-0018",
+        "observed_in": ["ENC-2026-0031", "ENC-2026-0055"],
+        "common_indicators": [
+            "MRZ checksum inconsistency",
+            "Layout deviation in name field",
+        ],
+        "description": "Similar document template anomalies observed. Not indicative of same individual.",
+    },
+]
+
+SCENARIO_NORMAL = {
+    "scenario": "normal",
+    "document_type": "passport",
+    "image_quality": "GOOD",
+    "ocr_confidence": 0.94,
+    "extracted_fields": {
+        "name": "ARJUN MEHTA",
+        "date_of_birth": "15/08/1995",
+        "document_number": "DEMO789012",
+        "address": "DEMO ADDRESS, NEW DELHI",
+        "nationality": "INDIAN",
+        "expiry_date": "15/08/2030",
+        "mrz_line1": "P<INDMEHTA<<ARJUN<<<<<<<<<<<<<<<<<<<<<<",
+        "mrz_line2": "DEMO789012IND9508155M3008155<<<<<<<<<<<<<<04",
+    },
+    "regions": [
+        {"x": 30, "y": 80, "width": 120, "height": 150, "label": "Photograph", "confidence": 0.96},
+        {"x": 180, "y": 90, "width": 280, "height": 30, "label": "Name", "confidence": 0.93},
+        {"x": 180, "y": 130, "width": 200, "height": 25, "label": "DOB", "confidence": 0.91},
+        {"x": 180, "y": 170, "width": 220, "height": 25, "label": "Document number", "confidence": 0.95},
+        {"x": 30, "y": 280, "width": 400, "height": 40, "label": "MRZ", "confidence": 0.89},
+    ],
+    "forensics": [],
+    "validations_pass": True,
+    "risk_score": 18,
+}
+
+SCENARIO_TAMPERED = {
+    "scenario": "tampered",
+    "document_type": "passport",
+    "image_quality": "FAIR",
+    "ocr_confidence": 0.82,
+    "extracted_fields": {
+        "name": "RAHUL SHARMA",
+        "date_of_birth": "12/04/2002",
+        "document_number": "DEMO123456",
+        "address": "DEMO ADDRESS, MUMBAI",
+        "nationality": "INDIAN",
+        "expiry_date": "12/04/2027",
+        "mrz_line1": "P<INDSHARMA<<RAHUL<<<<<<<<<<<<<<<<<<<<<",
+        "mrz_line2": "DEMO123456IND0204125M2704123<<<<<<<<<<<<<<02",
+    },
+    "regions": [
+        {"x": 35, "y": 75, "width": 115, "height": 145, "label": "Photograph", "confidence": 0.72},
+        {"x": 175, "y": 88, "width": 290, "height": 32, "label": "Name", "confidence": 0.85},
+        {"x": 175, "y": 128, "width": 195, "height": 28, "label": "DOB", "confidence": 0.80},
+        {"x": 175, "y": 168, "width": 225, "height": 28, "label": "Document number", "confidence": 0.83},
+    ],
+    "forensics": [
+        {
+            "indicator": "possible_region_manipulation",
+            "description": "Potential image manipulation in photo region",
+            "confidence": 0.87,
+            "region": [35, 75, 115, 145],
+            "score_contribution": 25,
+        },
+        {
+            "indicator": "template_layout_deviation",
+            "description": "Template/layout deviation detected",
+            "confidence": 0.79,
+            "region": [175, 88, 290, 32],
+            "score_contribution": 20,
+        },
+        {
+            "indicator": "photo_region_anomaly",
+            "description": "Photo-region anomaly — inconsistent compression",
+            "confidence": 0.84,
+            "region": [35, 75, 115, 145],
+            "score_contribution": 18,
+        },
+        {
+            "indicator": "mrz_inconsistency",
+            "description": "Machine-readable inconsistency between printed and MRZ fields",
+            "confidence": 0.71,
+            "region": [30, 280, 400, 40],
+            "score_contribution": 12,
+        },
+        {
+            "indicator": "low_quality_evidence",
+            "description": "Low-quality evidence limits certain checks",
+            "confidence": 0.65,
+            "region": None,
+            "score_contribution": 7,
+        },
+    ],
+    "validations_pass": False,
+    "risk_score": 82,
+}
+
+SCENARIO_IDENTITY_SWITCH = {
+    "scenario": "identity_switch",
+    "document_type": "passport",
+    "image_quality": "GOOD",
+    "ocr_confidence": 0.91,
+    "extracted_fields": {
+        "name": "VIKRAM SINGH",
+        "date_of_birth": "22/11/1988",
+        "document_number": "DEMO654321",
+        "address": "DEMO ADDRESS, JAIPUR",
+        "nationality": "INDIAN",
+        "expiry_date": "22/11/2028",
+    },
+    "regions": [
+        {"x": 32, "y": 78, "width": 118, "height": 148, "label": "Photograph", "confidence": 0.94},
+        {"x": 178, "y": 92, "width": 275, "height": 28, "label": "Name", "confidence": 0.90},
+    ],
+    "forensics": [],
+    "validations_pass": True,
+    "risk_score": 92,
+    "identity_alert": True,
+    "person_reference": "PERSON-REF-001",
+    "identity_reference": "ID-REF-017",
+}
+
+SCENARIO_MAP = {
+    "normal": SCENARIO_NORMAL,
+    "scenario_a": SCENARIO_NORMAL,
+    "scenario_b": SCENARIO_TAMPERED,
+    "tampered": SCENARIO_TAMPERED,
+    "scenario_c": SCENARIO_IDENTITY_SWITCH,
+    "identity_switch": SCENARIO_IDENTITY_SWITCH,
+}
