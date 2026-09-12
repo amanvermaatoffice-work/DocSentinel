@@ -259,7 +259,19 @@ class OCRService:
         best_name_conf = -1.0
 
         for text, conf, _ in blocks:
+            if conf <= 0.55:
+                continue
+
             clean = re.sub(r'[^A-Za-z\s]', '', text).strip()
+            # Normalize whitespace
+            clean = " ".join(clean.split())
+            if not re.match(r'^[A-Za-z]+(\s[A-Za-z]+){0,2}$', clean):
+                continue
+
+            # Must contain at least one vowel
+            if not re.search(r'[aeiouAEIOU]', clean):
+                continue
+
             words = clean.split()
             if len(words) in [1, 2, 3] and len(clean) >= 3:
                 lowered_clean = clean.lower()

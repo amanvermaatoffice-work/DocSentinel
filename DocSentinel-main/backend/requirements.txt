@@ -16,3 +16,6 @@ pytest>=8.3.0
 pytest-asyncio>=0.25.0
 torch
 torchvision
+# Note: face_recognition requires cmake, dlib, and setuptools<70.0.0 (or cmake installed on PATH)
+face_recognition
+mediapipe

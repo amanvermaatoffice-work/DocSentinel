@@ -103,8 +103,11 @@ class ForgeryAnalyzer:
                 probs = torch.softmax(outputs, dim=1)
                 tampered_prob = float(probs[0][1].item())
 
-            # If model predicts Tampered (Class 1) with > 40% probability
-            if tampered_prob > 0.40:
+            # Debug log line printing tampered_prob for every inference
+            print(f"[AI MODEL INFERENCE] tampered_prob: {tampered_prob:.4f}")
+
+            # TEMPORARY: raised threshold because the current model saturates near 1.0 on genuine documents; needs retraining on a larger/more diverse dataset before this can be tightened back down.
+            if tampered_prob > 0.90:
                 score_contrib = int(min(60, tampered_prob * 65))
                 return ForensicIndicator(
                     indicator="AI Neural Network Forgery Detected",
@@ -160,7 +163,7 @@ class ForgeryAnalyzer:
 
             if std_mean > 5.0:
                 for m, s, box in cell_means:
-                    if m > avg_mean + 2.2 * std_mean and m > 25:
+                    if m > avg_mean + 3.0 * std_mean and m > 40:
                         suspicious_boxes.append([box[0], box[1], box[2], box[3]])
 
                 if suspicious_boxes:

@@ -2,6 +2,10 @@ import base64
 from pathlib import Path
 import cv2
 import numpy as np
+import mediapipe as mp
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision as mp_vision
+import onnxruntime as ort
 
 from app.schemas.schemas import FaceVerificationResult
 
@@ -10,12 +14,63 @@ class FaceVerifier:
     """Authentic Face Verification with face detection, alignment, quality checks, feature matching, and heatmap generation."""
 
     def __init__(self) -> None:
-        self.cascade = None
+        self.session = self._load_arcface_session()
+
+        model_path = Path(__file__).resolve().parent.parent.parent / "models" / "blaze_face_short_range.tflite"
+        if not model_path.exists():
+            model_path = Path("backend/app/models/blaze_face_short_range.tflite")
+
+        if not model_path.exists():
+            print("[FACE VERIFICATION ERROR] BlazeFace model not found at backend/app/models/blaze_face_short_range.tflite — place the model file there.")
+            self.detector = None
+        else:
+            try:
+                base_options = mp_python.BaseOptions(model_asset_path=str(model_path))
+                options = mp_vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.3)
+                self.detector = mp_vision.FaceDetector.create_from_options(options)
+            except Exception as e:
+                print(f"[FACE VERIFICATION ERROR] Could not load BlazeFace model: {e}")
+                self.detector = None
+
+    def _load_arcface_session(self) -> ort.InferenceSession | None:
+        model_path = Path(__file__).resolve().parent.parent.parent / "models" / "arcface_w600k_r50.onnx"
+        if not model_path.exists():
+            # Fallback path relative to root
+            model_path = Path("backend/app/models/arcface_w600k_r50.onnx")
+
+        if not model_path.exists():
+            print("[FACE VERIFICATION ERROR] ArcFace model not found at backend/app/models/arcface_w600k_r50.onnx — place the model file there.")
+            return None
+
         try:
-            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-            self.cascade = cv2.CascadeClassifier(cascade_path)
-        except Exception:
-            pass
+            session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
+            print(f"[FACE VERIFICATION] Loaded ArcFace ONNX model from '{model_path}'")
+            return session
+        except Exception as e:
+            print(f"[FACE VERIFICATION ERROR] Could not load ArcFace ONNX model: {e}")
+            return None
+
+    def _get_embedding(self, face_crop_bgr: np.ndarray) -> np.ndarray | None:
+        if self.session is None:
+            return None
+        try:
+            resized = cv2.resize(face_crop_bgr, (112, 112))
+            rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            norm = (rgb.astype(np.float32) - 127.5) / 127.5
+            transposed = np.transpose(norm, (2, 0, 1))
+            input_tensor = np.expand_dims(transposed, axis=0)
+
+            input_name = self.session.get_inputs()[0].name
+            outputs = self.session.run(None, {input_name: input_tensor})
+            embedding = outputs[0][0]
+
+            l2_norm = np.linalg.norm(embedding)
+            if l2_norm > 0:
+                embedding = embedding / l2_norm
+            return embedding
+        except Exception as e:
+            print(f"[FACE EMBEDDING ERROR] {e}")
+            return None
 
     def verify(
         self,
@@ -142,14 +197,18 @@ class FaceVerifier:
             )
 
     def _detect_faces(self, img: np.ndarray) -> list[tuple[int, int, int, int]]:
-        if self.cascade is None:
+        if self.detector is None:
             return []
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = self.cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(35, 35))
-        if len(faces) == 0:
-            return []
-        # Sort by area descending
-        return sorted(list(faces), key=lambda f: f[2] * f[3], reverse=True)
+        print(f"[FACE DETECT DEBUG] Min pixel: {img.min()}, Max pixel: {img.max()}")
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        result = self.detector.detect(mp_image)
+        print(f"[FACE DETECT DEBUG] Detections count: {len(result.detections)}, Image shape: {img.shape}")
+        boxes = []
+        for detection in result.detections:
+            bbox = detection.bounding_box
+            boxes.append((bbox.origin_x, bbox.origin_y, bbox.width, bbox.height))
+        return sorted(boxes, key=lambda b: b[2] * b[3], reverse=True)
 
     def _crop_face_box(self, img: np.ndarray, box: tuple[int, int, int, int]) -> np.ndarray:
         x, y, w, h = box
@@ -178,40 +237,24 @@ class FaceVerifier:
         return cv2.cvtColor(equalized, cv2.COLOR_YCrCb2BGR)
 
     def _compute_similarity(self, face1: np.ndarray, face2: np.ndarray) -> tuple[float, float]:
-        g1 = cv2.cvtColor(face1, cv2.COLOR_BGR2GRAY)
-        g2 = cv2.cvtColor(face2, cv2.COLOR_BGR2GRAY)
+        """
+        Computes cosine similarity between 512-d ArcFace embeddings extracted via ONNX Runtime.
+        Returns (similarity_pct, confidence_score).
+        """
+        emb1 = self._get_embedding(face1)
+        emb2 = self._get_embedding(face2)
 
-        # 1. Histogram Correlation
-        h1 = cv2.calcHist([g1], [0], None, [256], [0, 256])
-        h2 = cv2.calcHist([g2], [0], None, [256], [0, 256])
-        cv2.normalize(h1, h1, 0, 1, cv2.NORM_MINMAX)
-        cv2.normalize(h2, h2, 0, 1, cv2.NORM_MINMAX)
-        hist_corr = float(cv2.compareHist(h1, h2, cv2.HISTCMP_CORREL))
-        hist_pct = max(0.0, hist_corr) * 100.0
+        if emb1 is None or emb2 is None:
+            print("[FACE VERIFICATION WARNING] Could not extract ArcFace embeddings for one or both faces.")
+            return 0.0, 50.0
 
-        # 2. ORB Feature Matching
-        orb = cv2.ORB_create(nfeatures=500)
-        kp1, des1 = orb.detectAndCompute(g1, None)
-        kp2, des2 = orb.detectAndCompute(g2, None)
+        cosine_sim = float(np.dot(emb1, emb2))
+        similarity_pct = float(((cosine_sim + 1.0) / 2.0) * 100.0)
+        confidence_score = 92.0
 
-        orb_pct = 50.0
-        if des1 is not None and des2 is not None and len(des1) > 0 and len(des2) > 0:
-            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-            matches = bf.match(des1, des2)
-            if matches:
-                good_matches = [m for m in matches if m.distance < 50]
-                ratio = len(good_matches) / max(1, min(len(des1), len(des2)))
-                orb_pct = min(100.0, ratio * 180.0)
+        print(f"[ARCFACE SIMILARITY] raw cosine_sim: {cosine_sim:.4f} -> converted percentage: {similarity_pct:.2f}%")
+        return similarity_pct, confidence_score
 
-        # 3. Structural Difference Metric
-        diff = cv2.absdiff(g1, g2)
-        mean_diff = float(np.mean(diff))
-        structural_pct = max(0.0, (1.0 - (mean_diff / 128.0)) * 100.0)
-
-        # Weighted combination
-        similarity = (hist_pct * 0.35) + (orb_pct * 0.35) + (structural_pct * 0.30)
-        confidence = min(98.0, max(60.0, 50.0 + (hist_pct * 0.4)))
-        return max(0.0, min(99.0, similarity)), confidence
 
     def _generate_heatmap(self, face1: np.ndarray, face2: np.ndarray) -> str:
         try:
