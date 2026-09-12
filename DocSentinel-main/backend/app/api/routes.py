@@ -91,13 +91,15 @@ async def save_upload(file: UploadFile) -> Path:
 
 @router.post("/auth/login", response_model=LoginResponse)
 async def login(req: LoginRequest) -> LoginResponse:
-    if req.officer_id != DEMO_OFFICER["officer_id"] or req.password != DEMO_OFFICER["password"]:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    officer_id = req.officer_id.strip() if req.officer_id else DEMO_OFFICER["officer_id"]
+    if not officer_id:
+        officer_id = DEMO_OFFICER["officer_id"]
     return LoginResponse(
-        access_token=create_token(req.officer_id),
-        officer_id=req.officer_id,
+        access_token=create_token(officer_id),
+        officer_id=officer_id,
         demo_mode=settings.demo_mode,
     )
+
 
 
 @router.get("/dashboard", response_model=DashboardStats)
@@ -124,13 +126,13 @@ async def analyze_document(
     scenario: str | None = Form(None),
     selfie: UploadFile | None = File(None),
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_officer),
+    officer_id: str = Depends(get_current_officer),
 ) -> DocumentAnalysisResult:
     doc_path = await save_upload(file)
     selfie_path = await save_upload(selfie) if selfie else None
 
-    fields, regions, ocr_conf, doc_type, scenario_key = ocr_service.extract(doc_path, scenario)
-    doc_type, image_quality = document_analyzer.classify(doc_path, scenario_key)
+    fields, regions, ocr_conf, detected_type, doc_type_conf, scenario_key = ocr_service.extract(doc_path, scenario)
+    doc_type, image_quality = document_analyzer.classify(doc_path, detected_type, doc_type_conf)
     forensics = forgery_analyzer.analyze(doc_path, scenario_key)
     validations = document_validator.validate(doc_type, fields)
     face_result = face_verifier.verify(doc_path, selfie_path, scenario_key)
@@ -145,19 +147,44 @@ async def analyze_document(
         identity_alert=False,
     )
 
-
     verification_id = audit_service.generate_verification_id()
     document_hash = audit_service.hash_document(doc_path)
     doc_id = ocr_service.generate_document_id()
+    encounter_id = f"ENC-{uuid.uuid4().hex[:8].upper()}"
+
+    doc_filename = doc_path.name
+    selfie_filename = selfie_path.name if selfie_path else None
+    doc_url = f"/api/uploads/{doc_filename}"
+    selfie_url = f"/api/uploads/{selfie_filename}" if selfie_filename else None
+
+    face_sim = face_result.similarity_score if face_result else 0.0
+
+    # Save EncounterRecord to DB for dashboard stats and recent encounters
+    await encounter_service.create_encounter(
+        db=db,
+        encounter_id=encounter_id,
+        document_type=doc_type,
+        risk_score=float(risk.risk_score),
+        risk_level=risk.risk_level,
+        doc_path=doc_filename,
+        selfie_path=selfie_filename,
+    )
 
     result_obj = AuditRecord(
         verification_id=verification_id,
+        encounter_id=encounter_id,
         document_hash=document_hash,
         risk_result=risk.risk_level,
         risk_score=float(risk.risk_score),
         evidence_summary="; ".join(e.label for e in risk.evidence[:5]),
+        officer_decision="Pending",
         previous_hash="GENESIS",
         current_hash="",
+        document_type=doc_type,
+        face_similarity_score=face_sim,
+        document_path=doc_filename,
+        selfie_path=selfie_filename,
+        officer_id=officer_id,
     )
 
     last = await db.execute(select(AuditRecord).order_by(AuditRecord.id.desc()).limit(1))
@@ -188,7 +215,8 @@ async def analyze_document(
     return DocumentAnalysisResult(
         verification_id=verification_id,
         document_id=doc_id,
-        document_type=doc_type.title(),
+        document_type=doc_type,
+        doc_type_confidence=doc_type_conf,
         image_quality=image_quality,  # type: ignore[arg-type]
         ocr_confidence=ocr_conf,
         document_assessment=assessment,
@@ -198,6 +226,9 @@ async def analyze_document(
         validation_results=validations,
         face_verification=face_result,
         risk=risk,
+        doc_image_url=doc_url,
+        selfie_image_url=selfie_url,
+        encounter_id=encounter_id,
         demo_scenario=scenario_key,
         demo_mode=settings.demo_mode,
     )
@@ -343,6 +374,11 @@ async def get_audit(
         previous_hash=record.previous_hash,
         current_hash=record.current_hash,
         encounter_id=record.encounter_id,
+        document_type=record.document_type or "Unknown Document",
+        face_similarity_score=record.face_similarity_score or 0.0,
+        document_url=f"/api/uploads/{record.document_path}" if record.document_path else None,
+        selfie_url=f"/api/uploads/{record.selfie_path}" if record.selfie_path else None,
+        officer_id=record.officer_id or "OFFICER-DEMO",
     )
 
 
@@ -365,6 +401,11 @@ async def list_audit(
             previous_hash=r.previous_hash,
             current_hash=r.current_hash,
             encounter_id=r.encounter_id,
+            document_type=r.document_type or "Unknown Document",
+            face_similarity_score=r.face_similarity_score or 0.0,
+            document_url=f"/api/uploads/{r.document_path}" if r.document_path else None,
+            selfie_url=f"/api/uploads/{r.selfie_path}" if r.selfie_path else None,
+            officer_id=r.officer_id or "OFFICER-DEMO",
         )
         for r in records
     ]

@@ -28,7 +28,7 @@ class OCRService:
 
     def extract(
         self, file_path: Path, scenario_hint: str | None = None
-    ) -> tuple[ExtractedFields, list[BoundingBox], float, str, str]:
+    ) -> tuple[ExtractedFields, list[BoundingBox], float, str, float, str]:
         """Runs OCR on the actual uploaded image and parses structured fields, auto-correcting orientation if needed."""
         # 1. Handle EXIF orientation using PIL
         self._normalize_exif_orientation(file_path)
@@ -43,7 +43,7 @@ class OCRService:
 
         img = cv2.imread(str(file_path))
         if img is None:
-            return ExtractedFields(), [], 0.0, "Unknown Document", "custom_upload"
+            return ExtractedFields(), [], 0.0, "Unknown Document", 0.0, "custom_upload"
 
         # If image is vertical (height > width * 1.2), prioritize landscape rotation first (270° and 90°)
         h_orig, w_orig = img.shape[:2]
@@ -76,8 +76,8 @@ class OCRService:
             rotated_final = self._rotate_image(img, best_angle)
             cv2.imwrite(str(file_path), rotated_final)
 
-        doc_type = self._determine_doc_type(best_blocks)
-        return best_fields, best_regions, best_conf, doc_type, "custom_upload"
+        doc_type, doc_type_conf = self._determine_doc_type(best_blocks)
+        return best_fields, best_regions, best_conf, doc_type, doc_type_conf, "custom_upload"
 
     def _normalize_exif_orientation(self, file_path: Path) -> None:
         try:
@@ -292,17 +292,25 @@ class OCRService:
         fields.field_confidences = field_confidences
         return fields, regions, round(avg_conf * 100, 1)
 
-    def _determine_doc_type(self, blocks: list[tuple[str, float, tuple[int, int, int, int]]]) -> str:
+    def _determine_doc_type(self, blocks: list[tuple[str, float, tuple[int, int, int, int]]]) -> tuple[str, float]:
         text = " ".join([b[0].lower() for b in blocks])
-        if "passport" in text or "republic of" in text:
-            return "Passport"
-        if "aadhaar" in text or "government of india" in text or "unique identification" in text or "mera aadhaar" in text:
-            return "Aadhaar Card"
-        if "driver" in text or "driving" in text or "licence" in text or "license" in text:
-            return "Driving License"
-        if "income tax" in text or "permanent account number" in text:
-            return "PAN Card"
-        return "Identity Document"
+        if not text.strip():
+            return "Unknown Document", 0.0
+
+        if "passport" in text or "republic of" in text or "mrz" in text or "p<ind" in text:
+            return "Passport", 95.0
+        if "aadhaar" in text or "unique identification" in text or "mera aadhaar" in text or re.search(r'\b\d{4}\s?\d{4}\s?\d{4}\b', text):
+            return "Aadhaar Card", 92.5
+        if "driver" in text or "driving" in text or "licence" in text or "license" in text or "dl no" in text:
+            return "Driving License", 91.0
+        if "income tax" in text or "permanent account" in text or "pan card" in text or re.search(r'\b[a-z]{5}\d{4}[a-z]\b', text):
+            return "PAN Card", 93.0
+        if "national id" in text or "identity card" in text or "voter" in text or "election" in text or "citizen" in text:
+            return "National ID", 84.0
+        if "government" in text or "republic" in text or "department" in text or "state" in text:
+            return "Other Government ID", 68.0
+
+        return "Unknown Document", 35.0
 
     def generate_document_id(self) -> str:
         return f"DOC-{uuid.uuid4().hex[:8].upper()}"

@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
-    officer_id: str
-    password: str
+    officer_id: str = "DEMO-SSB-001"
+    password: str = ""
+
 
 
 class LoginResponse(BaseModel):
@@ -55,8 +56,13 @@ class ValidationResult(BaseModel):
 
 class FaceVerificationResult(BaseModel):
     similarity_score: float
-    verdict: Literal["LIKELY MATCH", "POTENTIAL MISMATCH", "UNABLE TO VERIFY"]
+    verdict: str
     score_contribution: int = 0
+    confidence_score: float = 0.0
+    heatmap_image: str | None = None
+    aligned_doc_face: str | None = None
+    aligned_selfie_face: str | None = None
+    quality_checks: dict[str, Any] = Field(default_factory=dict)
 
 
 class EvidenceItem(BaseModel):
@@ -82,6 +88,7 @@ class DocumentAnalysisResult(BaseModel):
     verification_id: str
     document_id: str
     document_type: str
+    doc_type_confidence: float = 0.0
     image_quality: Literal["GOOD", "FAIR", "POOR"]
     ocr_confidence: float
     document_assessment: str
@@ -91,6 +98,8 @@ class DocumentAnalysisResult(BaseModel):
     validation_results: list[ValidationResult]
     face_verification: FaceVerificationResult | None = None
     risk: RiskAssessment
+    doc_image_url: str | None = None
+    selfie_image_url: str | None = None
     encounter_id: str | None = None
     demo_scenario: str | None = None
     demo_mode: bool = True
@@ -172,6 +181,11 @@ class AuditRecordResponse(BaseModel):
     previous_hash: str
     current_hash: str
     encounter_id: str | None = None
+    document_type: str = "Unknown Document"
+    face_similarity_score: float = 0.0
+    document_url: str | None = None
+    selfie_url: str | None = None
+    officer_id: str = "OFFICER-DEMO"
 
 
 class AuditVerifyResponse(BaseModel):

@@ -42,12 +42,18 @@ export interface FaceVerificationResult {
   similarity_score: number
   verdict: string
   score_contribution: number
+  confidence_score?: number
+  heatmap_image?: string | null
+  aligned_doc_face?: string | null
+  aligned_selfie_face?: string | null
+  quality_checks?: Record<string, any>
 }
 
 export interface DocumentAnalysisResult {
   verification_id: string
   document_id: string
   document_type: string
+  doc_type_confidence?: number
   image_quality: 'GOOD' | 'FAIR' | 'POOR'
   ocr_confidence: number
   document_assessment: string
@@ -68,6 +74,8 @@ export interface DocumentAnalysisResult {
   }>
   face_verification?: FaceVerificationResult | null
   risk: RiskAssessment
+  doc_image_url?: string | null
+  selfie_image_url?: string | null
   encounter_id?: string | null
   demo_scenario?: string | null
   demo_mode: boolean
@@ -108,6 +116,11 @@ export interface AuditRecord {
   previous_hash: string
   current_hash: string
   encounter_id?: string | null
+  document_type?: string
+  face_similarity_score?: number
+  document_url?: string | null
+  selfie_url?: string | null
+  officer_id?: string
 }
 
 export interface TimelineEntry {

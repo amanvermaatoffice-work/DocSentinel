@@ -204,7 +204,9 @@ class ForgeryAnalyzer:
 class DocumentAnalyzer:
     """Document quality and type classifier."""
 
-    def classify(self, file_path: Path, scenario_key: str = "custom_upload") -> tuple[str, str]:
+    def classify(
+        self, file_path: Path, detected_type: str = "Unknown Document", confidence: float = 0.0
+    ) -> tuple[str, str]:
         if not file_path.exists():
             return "Unknown Document", "POOR"
 
@@ -217,7 +219,10 @@ class DocumentAnalyzer:
         laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
 
         quality = "GOOD" if laplacian_var > 120 else ("FAIR" if laplacian_var > 45 else "POOR")
-        return "Identity Document", quality
+
+        # If detected confidence < 50%, mark as Unknown Document instead of false classification
+        final_doc_type = detected_type if confidence >= 50.0 else "Unknown Document"
+        return final_doc_type, quality
 
     def detect_regions(self, scenario_key: str = "custom_upload") -> list[BoundingBox]:
         return []

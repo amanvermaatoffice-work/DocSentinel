@@ -81,16 +81,62 @@ class EncounterService:
             status=r.status,
         )
 
+    async def create_encounter(
+        self,
+        db: AsyncSession,
+        encounter_id: str,
+        document_type: str,
+        risk_score: float,
+        risk_level: str,
+        checkpoint: str = "Checkpoint A — Indo-Nepal Border",
+        identity_reference: str | None = None,
+        person_reference: str | None = None,
+        doc_path: str | None = None,
+        selfie_path: str | None = None,
+    ) -> EncounterRecord:
+        id_ref = identity_reference or f"ID-{encounter_id[:6]}"
+        p_ref = person_reference or f"PERSON-{encounter_id[:6]}"
+        record = EncounterRecord(
+            encounter_id=encounter_id,
+            timestamp=datetime.utcnow(),
+            checkpoint=checkpoint,
+            identity_reference=id_ref,
+            document_reference=f"DOC-{encounter_id[:6]}",
+            face_reference=f"FACE-{encounter_id[:6]}",
+            person_reference=p_ref,
+            document_type=document_type,
+            risk_score=risk_score,
+            risk_level=risk_level,
+            status="FLAGGED" if risk_score >= 60 else ("REVIEW" if risk_score > 30 else "CLEARED"),
+            document_path=doc_path,
+            selfie_path=selfie_path,
+        )
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+        return record
+
     async def get_dashboard_stats(self, db: AsyncSession) -> DashboardStats:
-        encounters = await self.get_all(db)
+        from app.models.db_models import AuditRecord
+        enc_res = await db.execute(select(EncounterRecord))
+        encounters = enc_res.scalars().all()
+
+        aud_res = await db.execute(select(AuditRecord))
+        audits = aud_res.scalars().all()
+
+        total_processed = len(encounters)
+        suspicious = sum(1 for e in encounters if e.risk_level in ("MEDIUM", "HIGH", "CRITICAL", "SUSPICIOUS", "CAUTION") or e.risk_score > 30)
+        high_risk = sum(1 for e in encounters if e.risk_level in ("HIGH", "CRITICAL") or e.risk_score >= 60)
+        pending = sum(1 for a in audits if a.officer_decision == "Pending")
+
         return DashboardStats(
-            checkpoint="Checkpoint A — Indo-Nepal Border (DEMO)",
-            encounters_processed=248,
-            suspicious_encounters=17,
-            high_risk_encounters=5,
-            pending_reviews=8,
-            system_status="Operational — DEMO MODE",
-            demo_data=True,
+            checkpoint="Checkpoint A — Indo-Nepal Border",
+            encounters_processed=total_processed,
+            suspicious_encounters=suspicious,
+            high_risk_encounters=high_risk,
+            pending_reviews=pending,
+            system_status="Operational",
+            demo_data=False,
         )
 
     async def get_identity_timeline(self, db: AsyncSession, identity_ref: str) -> IdentityTimeline:

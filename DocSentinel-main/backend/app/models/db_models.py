@@ -23,6 +23,10 @@ class EncounterRecord(Base):
     status: Mapped[str] = mapped_column(String(32), default="processed")
 
 
+    document_path: Mapped[str] = mapped_column(String(256), nullable=True)
+    selfie_path: Mapped[str] = mapped_column(String(256), nullable=True)
+
+
 class AuditRecord(Base):
     __tablename__ = "audit_records"
 
@@ -37,6 +41,11 @@ class AuditRecord(Base):
     previous_hash: Mapped[str] = mapped_column(String(64), default="GENESIS")
     current_hash: Mapped[str] = mapped_column(String(64))
     encounter_id: Mapped[str] = mapped_column(String(32), nullable=True)
+    document_type: Mapped[str] = mapped_column(String(64), default="Unknown Document")
+    face_similarity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    document_path: Mapped[str] = mapped_column(String(256), nullable=True)
+    selfie_path: Mapped[str] = mapped_column(String(256), nullable=True)
+    officer_id: Mapped[str] = mapped_column(String(64), default="OFFICER-DEMO")
 
 
 class ReviewRecord(Base):

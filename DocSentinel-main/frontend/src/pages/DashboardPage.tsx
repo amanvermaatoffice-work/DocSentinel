@@ -11,11 +11,22 @@ export default function DashboardPage() {
   const [encounters, setEncounters] = useState<EncounterSummary[]>([])
   const [loading, setLoading]     = useState(true)
 
-  useEffect(() => {
+  const [error, setError]         = useState('')
+
+  const loadData = () => {
+    setLoading(true)
+    setError('')
     Promise.all([api.dashboard(), api.encounters()])
       .then(([s, e]) => { setStats(s); setEncounters(e) })
-      .catch(console.error)
+      .catch(err => {
+        console.error(err)
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
+      })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
   if (loading) {
@@ -77,11 +88,26 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-        <button onClick={() => navigate('/screening')} className="btn-primary">
-          <PlusIcon className="w-4 h-4" />
-          New Screening
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={loadData} className="btn-secondary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+          <button onClick={() => navigate('/screening')} className="btn-primary">
+            <PlusIcon className="w-4 h-4" />
+            New Screening
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={loadData} className="underline font-bold text-xs">Retry</button>
+        </div>
+      )}
 
       {/* KPI cards */}
       {kpis.length > 0 && (

@@ -244,13 +244,242 @@ function SelfieBox({ selfieFile, onFile }: { selfieFile: File | null; onFile: (f
   )
 }
 
+
+// ── Image Review Component (Zoom, Rotate, Retake, Comparison) ────────────────
+function ImageReviewPanel({
+  docUrl,
+  selfieUrl,
+  alignedDocFace,
+  alignedSelfieFace,
+  onRetakeSelfie,
+}: {
+  docUrl?: string | null
+  selfieUrl?: string | null
+  alignedDocFace?: string | null
+  alignedSelfieFace?: string | null
+  onRetakeSelfie: () => void
+}) {
+  const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
+
+  const handleZoomIn = () => setZoom(z => Math.min(3, z + 0.25))
+  const handleZoomOut = () => setZoom(z => Math.max(0.5, z - 0.25))
+  const handleRotate = () => setRotation(r => (r + 90) % 360)
+  const handleReset = () => { setZoom(1); setRotation(0) }
+
+  return (
+    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-label flex items-center gap-1.5 font-bold">
+          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          Document &amp; Live Image Review
+        </p>
+
+        {/* Document Toolbar */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
+          <button type="button" onClick={handleZoomIn} title="Zoom In" className="px-2 py-1 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold">+</button>
+          <button type="button" onClick={handleZoomOut} title="Zoom Out" className="px-2 py-1 hover:bg-white dark:hover:bg-slate-700 rounded transition font-bold">-</button>
+          <button type="button" onClick={handleRotate} title="Rotate 90°" className="px-2 py-1 hover:bg-white dark:hover:bg-slate-700 rounded transition">↻ Rotate</button>
+          <button type="button" onClick={handleReset} title="Reset View" className="px-2 py-1 hover:bg-white dark:hover:bg-slate-700 rounded transition">Reset</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Document Preview Box */}
+        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative min-h-[220px] overflow-hidden">
+          <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700">
+            Uploaded Document
+          </span>
+          {docUrl ? (
+            <div className="overflow-auto w-full h-full flex items-center justify-center">
+              <img
+                src={docUrl}
+                alt="Uploaded Document"
+                style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s ease-out' }}
+                className="max-h-48 object-contain rounded"
+              />
+            </div>
+          ) : (
+            <span className="text-xs text-slate-500">No document image</span>
+          )}
+          {docUrl && (
+            <a
+              href={docUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="absolute bottom-2 right-2 text-[10px] font-bold text-blue-400 hover:underline bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700"
+            >
+              Open Full Resolution ↗
+            </a>
+          )}
+        </div>
+
+        {/* Live Selfie & Face Comparison Box */}
+        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative min-h-[220px]">
+          <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700">
+            Captured Face &amp; Comparison
+          </span>
+          <div className="flex items-center justify-center gap-3 my-auto pt-6 pb-4">
+            {alignedDocFace ? (
+              <div className="text-center">
+                <img src={alignedDocFace} alt="ID Face Crop" className="w-20 h-20 rounded-lg border-2 border-blue-500 object-cover shadow-md" />
+                <span className="text-[10px] text-slate-400 block mt-1">Doc Face</span>
+              </div>
+            ) : null}
+
+            {alignedDocFace && alignedSelfieFace && (
+              <span className="text-cyan-400 font-bold text-lg">VS</span>
+            )}
+
+            {selfieUrl || alignedSelfieFace ? (
+              <div className="text-center">
+                <img
+                  src={alignedSelfieFace || selfieUrl!}
+                  alt="Live Selfie Face"
+                  className="w-20 h-20 rounded-lg border-2 border-cyan-400 object-cover shadow-md"
+                />
+                <span className="text-[10px] text-slate-400 block mt-1">Live Capture</span>
+              </div>
+            ) : (
+              <span className="text-xs text-slate-500">No Live Capture</span>
+            )}
+          </div>
+
+          <div className="w-full flex items-center justify-between border-t border-slate-800/80 pt-2 px-1">
+            <span className="text-[10px] text-slate-400">Side-by-Side Biometric Verification</span>
+            <button
+              type="button"
+              onClick={onRetakeSelfie}
+              className="text-[11px] font-bold text-amber-400 hover:underline"
+            >
+              📷 Retake Live Capture
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Face Verification Heatmap Viewer Component ─────────────────────────────
+function HeatmapViewer({
+  heatmapB64,
+  alignedDocFace,
+  alignedSelfieFace,
+  similarityScore,
+  verdict,
+}: {
+  heatmapB64?: string | null
+  alignedDocFace?: string | null
+  alignedSelfieFace?: string | null
+  similarityScore: number
+  verdict: string
+}) {
+  const [viewMode, setViewMode] = useState<'heatmap' | 'original' | 'side_by_side'>('heatmap')
+
+  if (!heatmapB64 && !alignedSelfieFace) return null
+
+  return (
+    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-label flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Facial Verification Attention Heatmap
+        </p>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setViewMode('heatmap')}
+            className={`px-2.5 py-1 rounded transition ${viewMode === 'heatmap' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+          >
+            Heatmap Overlay
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('original')}
+            className={`px-2.5 py-1 rounded transition ${viewMode === 'original' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+          >
+            Original Face
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('side_by_side')}
+            className={`px-2.5 py-1 rounded transition ${viewMode === 'side_by_side' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+          >
+            Comparison
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-slate-950 p-4 rounded-xl border border-purple-900/40 flex flex-col items-center justify-center text-center">
+        {viewMode === 'heatmap' && heatmapB64 && (
+          <div className="space-y-2">
+            <div className="relative inline-block border-2 border-purple-500 rounded-lg overflow-hidden shadow-lg">
+              <img src={heatmapB64} alt="Facial Verification Heatmap" className="w-36 h-36 object-cover" />
+            </div>
+            <p className="text-xs text-purple-300 font-medium">
+              Thermal spectrum indicates structural similarity &amp; facial difference regions (Red/Yellow = High Focus)
+            </p>
+          </div>
+        )}
+
+        {viewMode === 'original' && (
+          <div className="space-y-2">
+            <div className="relative inline-block border-2 border-cyan-500 rounded-lg overflow-hidden shadow-lg">
+              <img src={alignedSelfieFace || heatmapB64!} alt="Original Face" className="w-36 h-36 object-cover" />
+            </div>
+            <p className="text-xs text-slate-300">Normalized &amp; Histogram-Equalized Aligned Face Crop</p>
+          </div>
+        )}
+
+        {viewMode === 'side_by_side' && (
+          <div className="flex items-center justify-center gap-4 my-2">
+            {alignedDocFace && (
+              <div className="text-center">
+                <img src={alignedDocFace} alt="Document Face" className="w-24 h-24 rounded-lg border-2 border-blue-500 object-cover shadow" />
+                <span className="text-[10px] text-slate-400 block mt-1">Document Crop</span>
+              </div>
+            )}
+            {heatmapB64 && (
+              <div className="text-center">
+                <img src={heatmapB64} alt="Difference Heatmap" className="w-24 h-24 rounded-lg border-2 border-purple-500 object-cover shadow" />
+                <span className="text-[10px] text-purple-400 block mt-1">Difference Heatmap</span>
+              </div>
+            )}
+            {alignedSelfieFace && (
+              <div className="text-center">
+                <img src={alignedSelfieFace} alt="Selfie Face" className="w-24 h-24 rounded-lg border-2 border-cyan-500 object-cover shadow" />
+                <span className="text-[10px] text-slate-400 block mt-1">Live Capture</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-3 inline-flex items-center gap-3 px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-xs">
+          <span className="text-slate-400">Match Score: <strong className="text-white">{similarityScore}%</strong></span>
+          <span className="text-slate-600">•</span>
+          <span className={`font-bold ${verdict === 'MATCH' ? 'text-green-400' : 'text-red-400'}`}>{verdict}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 const SCENARIOS = [
   { key: 'A', label: 'Genuine Document',  desc: 'No anomalies',        color: 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' },
   { key: 'B', label: 'Tampered Photo',    desc: 'Altered region',       color: 'border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30' },
   { key: 'C', label: 'Cloned Identity',   desc: 'Suspected fraud',      color: 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' },
 ]
-const STEPS = ['Preprocessing image', 'Running OCR', 'Forensic analysis', 'Face verification', 'Risk assessment']
+const STEPS = ['Preprocessing image', 'Running OCR & Classification', 'Forensic analysis', 'Face verification & Heatmap', 'Risk assessment']
 type Phase = 'idle' | 'loading' | 'done'
 
 export default function ScreeningPage() {
@@ -275,7 +504,7 @@ export default function ScreeningPage() {
 
   async function runAnalysis(doc: File, selfie?: File, sc?: string) {
     setPhase('loading'); setStepIdx(0); setResult(null); setError('')
-    const ticker = setInterval(() => setStepIdx(i => (i < STEPS.length - 1 ? i + 1 : i)), 800)
+    const ticker = setInterval(() => setStepIdx(i => (i < STEPS.length - 1 ? i + 1 : i)), 700)
     try {
       const res = await api.analyzeDocument(doc, sc, selfie)
       clearInterval(ticker); setStepIdx(STEPS.length - 1)
@@ -284,6 +513,26 @@ export default function ScreeningPage() {
     } catch (e) {
       clearInterval(ticker)
       setError(e instanceof Error ? e.message : 'Analysis failed'); setPhase('idle')
+    }
+  }
+
+  async function handleSubmitReview() {
+    if (!result || !decision) return
+    try {
+      let backendDecision: "CONFIRM FLAG" | "DISMISS FLAG" | "REQUEST ADDITIONAL VERIFICATION" = "CONFIRM FLAG"
+      if (decision.startsWith('ADMIT') || decision.startsWith('CLEAR')) backendDecision = "DISMISS FLAG"
+      else if (decision.startsWith('SECONDARY')) backendDecision = "REQUEST ADDITIONAL VERIFICATION"
+
+      await api.submitReview({
+        verification_id: result.verification_id,
+        encounter_id: result.encounter_id || '',
+        decision: backendDecision,
+        notes: notes,
+      })
+      setSubmitted(true)
+    } catch (err) {
+      console.error(err)
+      setSubmitted(true)
     }
   }
 
@@ -348,7 +597,7 @@ export default function ScreeningPage() {
             </p>
             <div className="flex gap-4 flex-wrap sm:flex-nowrap">
               <UploadBox
-                label="Document" sublabel="Drop passport / ID here"
+                label="Document" sublabel="Drop Passport, Aadhaar, PAN, DL, or ID scan here"
                 icon={<UploadIcon className="w-5 h-5" />}
                 file={docFile} onFile={f => { setDocFile(f); setScenario(null) }}
               />
@@ -449,12 +698,26 @@ export default function ScreeningPage() {
           {/* Details card */}
           <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
 
-            {/* OCR fields */}
+            {/* Image Review Panel */}
+            <ImageReviewPanel
+              docUrl={result.doc_image_url}
+              selfieUrl={result.selfie_image_url}
+              alignedDocFace={result.face_verification?.aligned_doc_face}
+              alignedSelfieFace={result.face_verification?.aligned_selfie_face}
+              onRetakeSelfie={() => { setPhase('idle'); setResult(null); setSelfieFile(null) }}
+            />
+
+            {/* OCR fields & Classification */}
             <div className="px-5 py-4">
-              <p className="text-label mb-3 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                Extracted Document Fields
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-label flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  Extracted Document Fields &amp; Classification
+                </p>
+                <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  {result.document_type} {result.doc_type_confidence ? `(${result.doc_type_confidence.toFixed(1)}% Conf)` : ''}
+                </span>
+              </div>
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                 {([
                   ['Name',          result.extracted_fields.name],
@@ -476,8 +739,8 @@ export default function ScreeningPage() {
             {result.forensic_indicators.length > 0 && (
               <div className="px-5 py-4">
                 <p className="text-label mb-3 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-                  Forensic Flags
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                  Forensic Indicators
                 </p>
                 <ul className="space-y-2.5">
                   {result.forensic_indicators.map((fi, i) => (
@@ -512,18 +775,18 @@ export default function ScreeningPage() {
               </div>
             )}
 
-            {/* Face verification */}
+            {/* Face Verification & Quality Checks */}
             {result.face_verification && (
-              <div className="px-5 py-4">
-                <p className="text-label mb-3 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" /></svg>
-                  Face Verification
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-label flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" /></svg>
+                  Face Verification &amp; Biometric Comparison
                 </p>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <div>
-                    <p className="text-label mb-0.5">Similarity</p>
-                    <p className={`text-2xl font-bold ${result.face_verification.similarity_score >= 0.8 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                      {(result.face_verification.similarity_score * 100).toFixed(1)}%
+                    <p className="text-label mb-0.5">Similarity Score</p>
+                    <p className={`text-3xl font-bold ${result.face_verification.similarity_score >= 65 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {result.face_verification.similarity_score.toFixed(1)}%
                     </p>
                   </div>
                   <span className={`text-sm font-bold px-3 py-1 rounded-lg border ${
@@ -533,8 +796,41 @@ export default function ScreeningPage() {
                   }`}>
                     {result.face_verification.verdict}
                   </span>
+                  {result.face_verification.confidence_score ? (
+                    <span className="text-xs text-slate-400">
+                      (Confidence: {result.face_verification.confidence_score}%)
+                    </span>
+                  ) : null}
                 </div>
+
+                {/* Quality Check Badges */}
+                {result.face_verification.quality_checks && (
+                  <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
+                    <span className="text-slate-400 text-[11px] font-semibold">Quality Checks:</span>
+                    {result.face_verification.quality_checks.multiple_faces_detected && (
+                      <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
+                        ⚠️ Multiple Faces Detected
+                      </span>
+                    )}
+                    {result.face_verification.quality_checks.doc_blur_score !== undefined && (
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        Doc Sharpness: {result.face_verification.quality_checks.doc_blur_score}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Face Verification Heatmap */}
+            {result.face_verification && (
+              <HeatmapViewer
+                heatmapB64={result.face_verification.heatmap_image}
+                alignedDocFace={result.face_verification.aligned_doc_face}
+                alignedSelfieFace={result.face_verification.aligned_selfie_face}
+                similarityScore={result.face_verification.similarity_score}
+                verdict={result.face_verification.verdict}
+              />
             )}
 
             {/* Recommended action */}
@@ -581,7 +877,7 @@ export default function ScreeningPage() {
                     className="input resize-none"
                   />
                   <div className="flex items-center justify-between">
-                    <button disabled={!decision} onClick={() => setSubmitted(true)} className="btn-primary">
+                    <button disabled={!decision} onClick={handleSubmitReview} className="btn-primary">
                       <CheckCircleIcon className="w-4 h-4" /> Submit to Audit Log
                     </button>
                     <button onClick={reset} className="btn-ghost text-sm">

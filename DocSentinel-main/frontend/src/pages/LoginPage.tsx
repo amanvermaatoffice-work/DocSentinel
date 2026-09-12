@@ -10,15 +10,16 @@ export default function LoginPage() {
   const [error, setError]         = useState('')
   const [loading, setLoading]     = useState(false)
 
-  async function handleLogin(id: string, pw: string) {
+  async function handleLogin(id?: string, pw?: string) {
     setError('')
     setLoading(true)
+    const targetId = id || officerId || 'DEMO-SSB-001'
     try {
-      const res = await api.login(id, pw)
+      const res = await api.login(targetId, pw || '')
       setAuth(res.access_token, res.officer_id)
       navigate('/dashboard')
     } catch {
-      setError('Invalid officer ID or password. Please try again.')
+      setError('Authentication failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -50,7 +51,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">DocSentinel</h1>
             <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">Border Identity Intelligence System</p>
-            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Checkpoint Officer Portal &nbsp;·&nbsp; Authorised Access Only</p>
+            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Checkpoint Officer Portal &nbsp;·&nbsp; Demo Access</p>
           </div>
 
           {/* Card */}
@@ -60,7 +61,7 @@ export default function LoginPage() {
               <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
               </svg>
-              Sign in with your credentials
+              Sign in with Officer ID
             </h2>
 
             {error && (
@@ -72,7 +73,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={e => { e.preventDefault(); handleLogin(officerId, password) }} className="space-y-4">
+            <form onSubmit={e => { e.preventDefault(); handleLogin() }} className="space-y-4">
               <div>
                 <label htmlFor="officerId" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                   Officer ID
@@ -82,7 +83,7 @@ export default function LoginPage() {
                   type="text"
                   value={officerId}
                   onChange={e => setOfficerId(e.target.value)}
-                  placeholder="e.g. SSB-CP-001"
+                  placeholder="DEMO-SSB-001"
                   autoComplete="username"
                   className="input font-mono"
                 />
@@ -90,14 +91,14 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="password" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                  Password
+                  Password <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500">(Optional)</span>
                 </label>
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="No password required for demo"
                   autoComplete="current-password"
                   className="input"
                 />
@@ -105,7 +106,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || !officerId || !password}
+                disabled={loading}
                 className="btn-primary w-full justify-center py-2.5"
               >
                 {loading ? (
@@ -123,20 +124,20 @@ export default function LoginPage() {
             {/* Demo account */}
             <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800">
               <p className="text-center text-xs text-slate-400 dark:text-slate-500 mb-3">
-                — Demo access for evaluation —
+                — Instant Evaluation Access —
               </p>
               <button
-                onClick={() => handleLogin('DEMO-SSB-001', 'demo123')}
+                onClick={() => handleLogin('DEMO-SSB-001', '')}
                 disabled={loading}
                 className="btn-secondary w-full justify-center py-2.5 group"
               >
                 <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
-                Enter Demo Mode
+                Enter Demo Mode (No Password)
               </button>
               <p className="mt-2 text-center text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                DEMO-SSB-001 / demo123
+                1-Click Direct Demo Access — No Password Required
               </p>
             </div>
           </div>

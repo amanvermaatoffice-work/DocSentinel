@@ -38,6 +38,7 @@ app.add_middleware(
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+app.mount("/api/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 app.include_router(router, prefix="/api")
 
 

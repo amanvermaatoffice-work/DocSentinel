@@ -10,12 +10,14 @@ AI-assisted multi-signal identity and document screening platform for border-sec
 
 **Core flow:** Document → AI analysis → evidence → risk → identity/encounter intelligence → officer decision → tamper-evident audit
 
-## Demo Credentials
+## Demo Access
 
 ```
-Officer ID: DEMO-SSB-001
-Password:   demo123
+Officer ID: DEMO-SSB-001 (or any ID)
+Password:   None / Optional
 ```
+Click **"Enter Demo Mode (No Password)"** for 1-click instant login!
+
 
 ## How to Run the Prototype
 
